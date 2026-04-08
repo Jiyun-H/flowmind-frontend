@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/request";
+import { NextResponse, NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
   // 쿠키를 사용한다면 여기서 토큰 존재 여부 확인 가능
