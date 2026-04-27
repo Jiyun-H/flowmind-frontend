@@ -45,7 +45,6 @@ async function apiClient<T>(
   return response.json();
 }
 
-// API 함수들은 그대로 유지 (내부적으로 수정된 apiClient를 사용하게 됨)
 export const getTasks = () => apiClient<AITask[]>("/tasks/");
 export const getTaskDetail = (id: string) => apiClient<AITask>(`/tasks/${id}`);
 export const createAITask = (payload: CreateTaskPayload) =>
@@ -69,7 +68,6 @@ export const signup = (payload: any) =>
 export interface UserInfo {
   id: string;
   email: string;
-  // 필요하다면 name 등 추가
 }
 
-export const getMe = () => apiClient<UserInfo>("/auth/me"); // 백엔드 경로에 맞게 수정
+export const getMe = () => apiClient<UserInfo>("/auth/me");
