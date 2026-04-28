@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
-import LogoutButton from "@/components/LogoutButton";
 import AuthStatus from "@/components/AuthStatus";
 
 const geistSans = Geist({
@@ -30,12 +29,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-screen flex bg-white text-black overflow-hidden`}
       >
-        {/* 1. 사이드바: 고정 너비, 연한 회색 배경, 경계선 */}
-        <aside className="w-64 border-r border-gray-100 bg-gray-50/50 hidden md:flex flex-col flex-shrink-0">
-          <div className="flex-1 overflow-y-auto">
-            <Sidebar />
-          </div>
-        </aside>
+        {/* 1. 사이드바 */}
+        <Sidebar />
 
         {/* 2. 메인 컨텐츠 영역: 헤더 + 본문 */}
         <div className="flex-1 flex flex-col min-w-0 bg-white">
