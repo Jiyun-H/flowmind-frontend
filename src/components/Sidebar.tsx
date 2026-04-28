@@ -1,16 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
-import { getTasks, getMe, UserInfo } from "@/lib/api";
+import { usePathname, useRouter } from "next/navigation";
+import { deleteTask, getTasks, getMe, UserInfo } from "@/lib/api";
 import { AITask } from "@/types/ai-task";
 import Link from "next/link";
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [tasks, setTasks] = useState<AITask[]>([]);
   const [user, setUser] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
+
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
@@ -38,8 +41,41 @@ export default function Sidebar() {
         setLoading(false);
       }
     }
+
     loadInitialData();
+
+    window.addEventListener("flowmind:tasks-updated", loadInitialData);
+    return () => {
+      window.removeEventListener("flowmind:tasks-updated", loadInitialData);
+    };
   }, [pathname]);
+
+  const handleDeleteTask = async (taskId: string) => {
+    const confirmed = window.confirm("이 분석 기록을 삭제할까요?");
+    if (!confirmed) return;
+
+    try {
+      setDeletingTaskId(taskId);
+      await deleteTask(taskId);
+      setTasks((currentTasks) =>
+        currentTasks.filter((task) => task.id !== taskId),
+      );
+      window.dispatchEvent(new Event("flowmind:tasks-updated"));
+
+      if (pathname === `/tasks/${taskId}`) {
+        router.replace("/dashboard");
+      }
+    } catch (error) {
+      console.error("사이드바 분석 기록 삭제 실패:", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "분석 기록을 삭제하지 못했습니다.",
+      );
+    } finally {
+      setDeletingTaskId(null);
+    }
+  };
 
   return (
     <aside
@@ -61,14 +97,25 @@ export default function Sidebar() {
         className={`p-4 h-full flex flex-col ${isCollapsed ? "items-center" : ""}`}
       >
         <Link
-          href="/"
+          href="/dashboard"
           className={`font-bold mb-8 p-2 hover:text-blue-600 transition-all block truncate ${
             isCollapsed ? "text-lg" : "text-xl"
           }`}
-          aria-label="FlowMind AI 홈"
+          aria-label="FlowMind AI 대시보드"
           title="FlowMind AI"
         >
           {isCollapsed ? "F" : "FlowMind AI ✨"}
+        </Link>
+
+        <Link
+          href="/analyze"
+          className={`mb-6 block rounded bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 ${
+            isCollapsed ? "w-9 text-center" : "w-full text-center"
+          }`}
+          aria-label="새 AI 분석"
+          title="새 AI 분석"
+        >
+          {isCollapsed ? "+" : "새 AI 분석"}
         </Link>
 
         <nav className="flex-1 overflow-y-auto w-full">
@@ -88,21 +135,39 @@ export default function Sidebar() {
             <div className="space-y-1">
               {tasks && tasks.length > 0
                 ? tasks.map((task) => (
-                    <Link
+                    <div
                       key={task.id}
-                      href={`/tasks/${task.id}`}
-                      className={`block p-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded transition-colors truncate ${
-                        isCollapsed ? "text-center" : ""
+                      className={`group flex items-center gap-1 rounded transition-colors hover:bg-blue-50 ${
+                        isCollapsed ? "justify-center" : ""
                       }`}
-                      title={task.input_text}
                     >
-                      <span
-                        className={`font-medium text-blue-500 ${isCollapsed ? "" : "mr-2"}`}
+                      <Link
+                        href={`/tasks/${task.id}`}
+                        className={`min-w-0 flex-1 p-2 text-sm text-gray-700 hover:text-blue-700 truncate ${
+                          isCollapsed ? "text-center" : ""
+                        }`}
+                        title={task.input_text}
                       >
-                        [{task.task_type[0].toUpperCase()}]
-                      </span>
-                      {!isCollapsed && task.input_text}
-                    </Link>
+                        <span
+                          className={`font-medium text-blue-500 ${isCollapsed ? "" : "mr-2"}`}
+                        >
+                          [{task.task_type[0].toUpperCase()}]
+                        </span>
+                        {!isCollapsed && task.input_text}
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTask(task.id)}
+                        disabled={deletingTaskId === task.id}
+                        className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded text-sm font-bold text-gray-300 transition hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50 ${
+                          isCollapsed ? "" : "mr-1 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                        }`}
+                        aria-label={`${task.input_text} 삭제`}
+                        title="삭제"
+                      >
+                        {deletingTaskId === task.id ? "..." : "×"}
+                      </button>
+                    </div>
                   ))
                 : !isCollapsed && (
                     <p className="text-sm text-gray-400 px-2">
