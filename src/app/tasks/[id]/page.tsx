@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useState, use } from "react"; // 💡 use 추가
-import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { AITask } from "@/types/ai-task";
 import ReactMarkdown from "react-markdown";
-import { getTaskDetail } from "@/lib/api";
+import { deleteTask, getTaskDetail } from "@/lib/api";
 
 export default function TaskDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const [task, setTask] = useState<AITask | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null); // 💡 에러 상태 추가
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchDetail() {
@@ -34,6 +36,29 @@ export default function TaskDetailPage() {
     fetchDetail();
   }, [params.id]);
 
+  const handleDelete = async () => {
+    if (!task) return;
+
+    const confirmed = window.confirm("이 분석 기록을 삭제할까요?");
+    if (!confirmed) return;
+
+    try {
+      setDeleting(true);
+      await deleteTask(task.id);
+      window.dispatchEvent(new Event("flowmind:tasks-updated"));
+      router.replace("/dashboard");
+    } catch (error) {
+      console.error("분석 기록 삭제 실패:", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "분석 기록을 삭제하지 못했습니다.",
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading)
     return (
       <div className="p-8 text-gray-500 animate-pulse">
@@ -50,13 +75,23 @@ export default function TaskDetailPage() {
   return (
     <div className="max-w-4xl mx-auto p-8">
       <div className="mb-8 border-b pb-6">
-        <div className="flex items-center gap-3 mb-4">
-          <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider">
-            {task.task_type}
-          </span>
-          <span className="text-gray-400 text-sm">
-            {new Date(task.created_at).toLocaleString("ko-KR")}
-          </span>
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider">
+              {task.task_type}
+            </span>
+            <span className="text-gray-400 text-sm">
+              {new Date(task.created_at).toLocaleString("ko-KR")}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting}
+            className="self-start rounded border border-red-100 px-3 py-2 text-sm font-semibold text-red-500 transition hover:border-red-200 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
+          >
+            {deleting ? "삭제 중" : "삭제"}
+          </button>
         </div>
         <h1 className="text-sm font-semibold text-gray-400 uppercase mb-2">
           질문 내용

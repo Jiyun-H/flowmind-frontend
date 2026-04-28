@@ -4,6 +4,17 @@ import { AITask, CreateTaskPayload } from "@/types/ai-task";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
+interface AuthPayload {
+  email: string;
+  password: string;
+}
+
+interface SignupResponse {
+  id?: string;
+  email?: string;
+  message?: string;
+}
+
 async function apiClient<T>(
   endpoint: string,
   options: RequestInit = {},
@@ -42,7 +53,12 @@ async function apiClient<T>(
     throw new Error(errorData.detail || "API 요청에 실패했습니다.");
   }
 
-  return response.json();
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  const responseText = await response.text();
+  return (responseText ? JSON.parse(responseText) : undefined) as T;
 }
 
 export const getTasks = () => apiClient<AITask[]>("/tasks/");
@@ -53,14 +69,19 @@ export const createAITask = (payload: CreateTaskPayload) =>
     body: JSON.stringify(payload),
   });
 
-export const login = (payload: any) =>
+export const deleteTask = (id: string) =>
+  apiClient<void>(`/tasks/${id}`, {
+    method: "DELETE",
+  });
+
+export const login = (payload: AuthPayload) =>
   apiClient<{ access_token: string }>("/auth/login", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 
-export const signup = (payload: any) =>
-  apiClient<any>("/auth/signup", {
+export const signup = (payload: AuthPayload) =>
+  apiClient<SignupResponse>("/auth/signup", {
     method: "POST",
     body: JSON.stringify(payload),
   });

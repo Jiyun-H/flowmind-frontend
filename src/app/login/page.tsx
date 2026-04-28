@@ -19,12 +19,14 @@ export default function LoginPage() {
       // 여기까지 왔다면 로그인 성공입니다.
       localStorage.setItem("access_token", data.access_token);
 
-      router.push("/"); // 메인으로 이동
+      router.push("/dashboard"); // 로그인 후 대시보드로 이동
       router.refresh(); // 페이지 상태 새로고침
-    } catch (error: any) {
+    } catch (error) {
       // 💡 api.ts에서 던진 에러 메시지("이메일 또는 비밀번호가 올바르지 않습니다" 등)가 출력됩니다.
       console.error("Login error:", error);
-      alert(error.message || "로그인에 실패했습니다.");
+      alert(
+        error instanceof Error ? error.message : "로그인에 실패했습니다.",
+      );
     }
   };
 

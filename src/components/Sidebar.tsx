@@ -1,19 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { deleteTask, getTasks, getMe, UserInfo } from "@/lib/api";
+import { usePathname } from "next/navigation";
+import { getTasks, getMe, UserInfo } from "@/lib/api";
 import { AITask } from "@/types/ai-task";
 import Link from "next/link";
+import { Menu, ChevronLeft } from "lucide-react"; // 아이콘 라이브러리 (설치 필요: lucide-react)
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const [tasks, setTasks] = useState<AITask[]>([]);
   const [user, setUser] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
 
+  // 💡 사이드바 열림/닫힘 상태
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
@@ -41,83 +41,37 @@ export default function Sidebar() {
         setLoading(false);
       }
     }
-
     loadInitialData();
-
-    window.addEventListener("flowmind:tasks-updated", loadInitialData);
-    return () => {
-      window.removeEventListener("flowmind:tasks-updated", loadInitialData);
-    };
   }, [pathname]);
 
-  const handleDeleteTask = async (taskId: string) => {
-    const confirmed = window.confirm("이 분석 기록을 삭제할까요?");
-    if (!confirmed) return;
-
-    try {
-      setDeletingTaskId(taskId);
-      await deleteTask(taskId);
-      setTasks((currentTasks) =>
-        currentTasks.filter((task) => task.id !== taskId),
-      );
-      window.dispatchEvent(new Event("flowmind:tasks-updated"));
-
-      if (pathname === `/tasks/${taskId}`) {
-        router.replace("/dashboard");
-      }
-    } catch (error) {
-      console.error("사이드바 분석 기록 삭제 실패:", error);
-      alert(
-        error instanceof Error
-          ? error.message
-          : "분석 기록을 삭제하지 못했습니다.",
-      );
-    } finally {
-      setDeletingTaskId(null);
-    }
-  };
-
   return (
-    <aside
-      className={`relative hidden h-full flex-shrink-0 flex-col border-r border-gray-100 bg-gray-50/50 text-black transition-all duration-300 md:flex ${
+    <div
+      className={`relative h-full flex flex-col text-black border-r bg-white transition-all duration-300 ${
         isCollapsed ? "w-16" : "w-64"
       }`}
     >
+      {/* 💡 토글 버튼 (사이드바 오른쪽 상단에 위치) */}
       <button
-        type="button"
-        onClick={() => setIsCollapsed((current) => !current)}
-        className="absolute -right-3 top-6 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-lg leading-none text-gray-500 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
-        aria-label={isCollapsed ? "사이드바 펼치기" : "사이드바 접기"}
-        title={isCollapsed ? "사이드바 펼치기" : "사이드바 접기"}
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="absolute -right-3 top-6 bg-white border rounded-full p-1 hover:bg-gray-100 shadow-sm z-10"
       >
-        {isCollapsed ? "›" : "‹"}
+        {isCollapsed ? <Menu size={16} /> : <ChevronLeft size={16} />}
       </button>
 
       <div
         className={`p-4 h-full flex flex-col ${isCollapsed ? "items-center" : ""}`}
       >
+        {/* 로고 영역 */}
         <Link
-          href="/dashboard"
+          href="/"
           className={`font-bold mb-8 p-2 hover:text-blue-600 transition-all block truncate ${
             isCollapsed ? "text-lg" : "text-xl"
           }`}
-          aria-label="FlowMind AI 대시보드"
-          title="FlowMind AI"
         >
-          {isCollapsed ? "F" : "FlowMind AI ✨"}
+          {isCollapsed ? "✨" : "FlowMind AI ✨"}
         </Link>
 
-        <Link
-          href="/analyze"
-          className={`mb-6 block rounded bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 ${
-            isCollapsed ? "w-9 text-center" : "w-full text-center"
-          }`}
-          aria-label="새 AI 분석"
-          title="새 AI 분석"
-        >
-          {isCollapsed ? "+" : "새 AI 분석"}
-        </Link>
-
+        {/* 내비게이션 영역 */}
         <nav className="flex-1 overflow-y-auto w-full">
           {!isCollapsed && (
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 px-2">
@@ -135,39 +89,21 @@ export default function Sidebar() {
             <div className="space-y-1">
               {tasks && tasks.length > 0
                 ? tasks.map((task) => (
-                    <div
+                    <Link
                       key={task.id}
-                      className={`group flex items-center gap-1 rounded transition-colors hover:bg-blue-50 ${
-                        isCollapsed ? "justify-center" : ""
+                      href={`/tasks/${task.id}`}
+                      className={`block p-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded transition-colors truncate ${
+                        isCollapsed ? "text-center" : ""
                       }`}
+                      title={task.input_text} // 닫혔을 때 툴팁 제공
                     >
-                      <Link
-                        href={`/tasks/${task.id}`}
-                        className={`min-w-0 flex-1 p-2 text-sm text-gray-700 hover:text-blue-700 truncate ${
-                          isCollapsed ? "text-center" : ""
-                        }`}
-                        title={task.input_text}
+                      <span
+                        className={`font-medium text-blue-500 ${isCollapsed ? "" : "mr-2"}`}
                       >
-                        <span
-                          className={`font-medium text-blue-500 ${isCollapsed ? "" : "mr-2"}`}
-                        >
-                          [{task.task_type[0].toUpperCase()}]
-                        </span>
-                        {!isCollapsed && task.input_text}
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteTask(task.id)}
-                        disabled={deletingTaskId === task.id}
-                        className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded text-sm font-bold text-gray-300 transition hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50 ${
-                          isCollapsed ? "" : "mr-1 opacity-0 group-hover:opacity-100 focus:opacity-100"
-                        }`}
-                        aria-label={`${task.input_text} 삭제`}
-                        title="삭제"
-                      >
-                        {deletingTaskId === task.id ? "..." : "×"}
-                      </button>
-                    </div>
+                        [{task.task_type[0].toUpperCase()}]
+                      </span>
+                      {!isCollapsed && task.input_text}
+                    </Link>
                   ))
                 : !isCollapsed && (
                     <p className="text-sm text-gray-400 px-2">
@@ -178,15 +114,13 @@ export default function Sidebar() {
           )}
         </nav>
 
+        {/* 하단 유저 정보 영역 */}
         <div className="border-t pt-4 mt-4 w-full">
           <div
             className={`px-2 py-1 text-xs text-gray-500 flex flex-col gap-1 ${isCollapsed ? "items-center" : ""}`}
           >
             {isCollapsed ? (
-              <div
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-600"
-                title={user ? user.email : "Guest"}
-              >
+              <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">
                 {user ? user.email[0].toUpperCase() : "G"}
               </div>
             ) : (
@@ -200,6 +134,6 @@ export default function Sidebar() {
           </div>
         </div>
       </div>
-    </aside>
+    </div>
   );
 }
