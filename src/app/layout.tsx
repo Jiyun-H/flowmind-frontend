@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
-import AuthStatus from "@/components/AuthStatus";
+import AppShell from "@/components/AppShell";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,29 +28,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-screen flex bg-white text-black overflow-hidden`}
       >
-        {/* 1. 사이드바 */}
-        <Sidebar />
-
-        {/* 2. 메인 컨텐츠 영역: 헤더 + 본문 */}
-        <div className="flex-1 flex flex-col min-w-0 bg-white">
-          {/* 상단 헤더: 로그아웃 버튼과 현재 상태 표시 */}
-          <header className="h-16 border-b border-gray-100 flex items-center justify-between px-8 bg-white/80 backdrop-blur-md sticky top-0 z-10">
-            <div className="md:hidden font-bold text-blue-600">FlowMind AI</div>
-            <div className="hidden md:block text-sm text-gray-400">
-              워크스페이스 / 분석 도구
-            </div>
-
-            {/* 우리가 만든 로그아웃 버튼 컴포넌트 */}
-            <AuthStatus />
-          </header>
-
-          {/* 실제 페이지 컨텐츠: 스크롤 가능 구역 */}
-          <main className="flex-1 overflow-y-auto">
-            <div className="max-w-4xl mx-auto py-8 px-6 lg:px-8">
-              {children}
-            </div>
-          </main>
-        </div>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );
