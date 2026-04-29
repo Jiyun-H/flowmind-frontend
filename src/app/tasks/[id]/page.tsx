@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { AITask } from "@/types/ai-task";
 import ReactMarkdown from "react-markdown";
 import { deleteTask, getTaskDetail } from "@/lib/api";
+import { removeTaskFromProjects } from "@/lib/projects";
 
 export default function TaskDetailPage() {
   const params = useParams();
@@ -45,6 +46,7 @@ export default function TaskDetailPage() {
     try {
       setDeleting(true);
       await deleteTask(task.id);
+      removeTaskFromProjects(task.id);
       window.dispatchEvent(new Event("flowmind:tasks-updated"));
       router.replace("/dashboard");
     } catch (error) {
